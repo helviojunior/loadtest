@@ -6,6 +6,8 @@ An complete solution to make an complet and deeper load test (stress test) on a 
 
 These instructions will get you how can you compile to deploy the project on a live system. And do an Load Test.
 
+To use this app check the how to at (http://www.helviojunior.com.br/it/teste-de-carga-e-otimizacao-de-sites-sistemas-web/)
+
 ### Prerequisites
 
 Before complile this application you need to install this packages:
