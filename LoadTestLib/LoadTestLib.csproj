@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{7F9E784E-EE9C-4F59-A06E-5384D20FD5F1}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>LoadTestLib</RootNamespace>
+    <AssemblyName>LoadTestLib</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="HtmlAgilityPack">
+      <HintPath>..\HtmlAgilityPack.dll</HintPath>
+    </Reference>
+    <Reference Include="Spring.Core">
+      <HintPath>..\Spring.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Runtime.Serialization.Formatters.Soap" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ZabbixQueue.cs" />
+    <Compile Include="FileResources.cs" />
+    <Compile Include="MIMECheck.cs" />
+    <Compile Include="Profile.cs" />
+    <Compile Include="ReportBuilder.cs" />
+    <Compile Include="SQLDB.cs" />
+    <Compile Include="UriInfo.cs" />
+    <Compile Include="VirtualUser.cs" />
+    <Compile Include="WebResultQueue.cs" />
+    <Compile Include="ClientStarter.cs" />
+    <Compile Include="DBQueue.cs" />
+    <Compile Include="Enums.cs" />
+    <Compile Include="Request.cs" />
+    <Compile Include="SQLConfig.cs" />
+    <Compile Include="VUQueue.cs" />
+    <Compile Include="TestBuilder.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestEnvironment.cs" />
+    <Compile Include="TextQueue.cs" />
+    <Compile Include="VirtualUserCollection.cs" />
+    <Compile Include="Zabbix.cs" />
+    <Compile Include="ZabbixConfig.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DatabaseResource\DatabaseResource.csproj">
+      <Project>{7956F6F3-7EC7-4E56-BFA6-57A778A88844}</Project>
+      <Name>DatabaseResource</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Globals\Globals.csproj">
+      <Project>{D18D7195-D8CA-4FFD-A133-BC0CCCDAFA9A}</Project>
+      <Name>Globals</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ImageTools\ImageTools.csproj">
+      <Project>{789A84B2-1E7A-4BD6-8C23-D88BA84B0DBD}</Project>
+      <Name>ImageTools</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Zip\Zip.csproj">
+      <Project>{6AA8F3F3-D777-4690-B1D4-7FA8BACF145D}</Project>
+      <Name>Zip</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
