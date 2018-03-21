@@ -196,7 +196,10 @@ namespace LoadTestLib
                     // Get the response.
                     if (debugCallback != null) debugCallback("GetResponse", "");
                     timer.Start();
-                    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+
+
+                    using (WebResponse r1 = request.GetResponse())
+                    using (HttpWebResponse response = (HttpWebResponse)r1)
                     {
                         timer.Stop();
                         res.Code = (Int32)response.StatusCode;

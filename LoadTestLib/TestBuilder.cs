@@ -221,6 +221,9 @@ namespace LoadTestLib
 
             try
             {
+                if (s.IndexOf("//") == 0)
+                    s = referer.Scheme + ":" + s;
+
                 Uri tmp = new Uri(s);
                 ret = new UriInfo(tmp, referer);
             }
