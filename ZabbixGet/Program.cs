@@ -150,8 +150,9 @@ namespace ZabbixGet
         {
             //SetStatus(LogType.Debug, text, index);
             //Console.WriteLine(text);
-
-            //Console.WriteLine(index + " ==> " + text);
+#if DEBUG
+            Console.WriteLine(index + " ==> " + text);
+#endif
         }
 
         static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

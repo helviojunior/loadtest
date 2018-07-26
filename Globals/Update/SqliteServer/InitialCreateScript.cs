@@ -22,6 +22,7 @@ namespace SafeTrend.Data.Update.SqliteServer
                     DROP TABLE IF EXISTS [NonOptimization];
                     DROP TABLE IF EXISTS [GzipOptimization];
                     DROP TABLE IF EXISTS [ZabbixMonitor];
+                    DROP TABLE IF EXISTS [ZabbixMonitorNetwork];
 	                    
                     CREATE TABLE [Events] (
                         id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -97,6 +98,17 @@ namespace SafeTrend.Data.Update.SqliteServer
                         selector TEXT, 
                         total_value INTEGER,
                         value INTEGER
+					);
+
+                    CREATE TABLE [ZabbixMonitorNetwork] (
+                        date datetime not null  DEFAULT (datetime('now','localtime')), 
+                        dateg datetime not null  DEFAULT (datetime('now','localtime')), 
+                        pID INTEGER, 
+                        testID TEXT, 
+                        host TEXT, 
+                        interface TEXT, 
+                        in_value INTEGER,
+                        out_value INTEGER
 					);
 
 

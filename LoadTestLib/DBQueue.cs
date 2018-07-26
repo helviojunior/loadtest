@@ -11,6 +11,7 @@ namespace LoadTestLib
         public WebResultQueueItem Result;
         public TextQueueItem Debug;
         public ZabbixQueueItem Zabbix;
+        public ZabbixQueueNetworkItem ZabbixNetwork;
 
         public QueueItem(DateTime date, Int32 virtualUsersCount, Int32 connectionsCount)
             : this(new VUQueueItem(date, virtualUsersCount, connectionsCount)) { }
@@ -30,6 +31,7 @@ namespace LoadTestLib
             this.Result = null;
             this.Debug = null;
             this.Zabbix = null;
+            this.ZabbixNetwork = null;
         }
 
         public QueueItem(WebResultQueueItem Result)
@@ -38,6 +40,7 @@ namespace LoadTestLib
             this.VUCount = null;
             this.Debug = null;
             this.Zabbix = null;
+            this.ZabbixNetwork = null;
         }
 
         public QueueItem(TextQueueItem Debug)
@@ -46,6 +49,7 @@ namespace LoadTestLib
             this.Result = null;
             this.Debug = Debug;
             this.Zabbix = null;
+            this.ZabbixNetwork = null;
         }
 
         public QueueItem(ZabbixQueueItem Zabbix)
@@ -54,6 +58,16 @@ namespace LoadTestLib
             this.Result = null;
             this.Debug = null;
             this.Zabbix = Zabbix;
+            this.ZabbixNetwork = null;
+        }
+
+        public QueueItem(ZabbixQueueNetworkItem ZabbixNetwork)
+        {
+            this.VUCount = null;
+            this.Result = null;
+            this.Debug = null;
+            this.Zabbix = null;
+            this.ZabbixNetwork = ZabbixNetwork;
         }
 
         public void Dispose()
@@ -62,11 +76,13 @@ namespace LoadTestLib
             if (Result != null) Result.Dispose();
             if (Debug != null) Debug.Dispose();
             if (Zabbix != null) Zabbix.Dispose();
+            if (ZabbixNetwork != null) ZabbixNetwork.Dispose();
 
-            VUCount = null;
-            Result = null;
-            Debug = null;
-            Zabbix = null;
+            this.VUCount = null;
+            this.Result = null;
+            this.Debug = null;
+            this.Zabbix = null;
+            this.ZabbixNetwork = null;
         }
 
     }
@@ -103,6 +119,11 @@ namespace LoadTestLib
         }
 
         public void Add(WebResultQueueItem log)
+        {
+            Add(new QueueItem(log));
+        }
+
+        public void Add(ZabbixQueueNetworkItem log)
         {
             Add(new QueueItem(log));
         }

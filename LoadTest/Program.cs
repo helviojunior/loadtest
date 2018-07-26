@@ -142,6 +142,20 @@ namespace LoadTest
             }*/
             
             IPEndPoint proxy = null;// new IPEndPoint(IPAddress.Parse("10.0.10.1"), 80);
+            if (!String.IsNullOrEmpty((string)ConfigurationManager.AppSettings["proxy"]))
+            {
+                Uri tProxy = null;
+                try
+                {
+                    tProxy = new Uri(ConfigurationManager.AppSettings["proxy"]);
+                    proxy = new IPEndPoint(IPAddress.Parse(tProxy.Host), tProxy.Port);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Proxy not valid. Proxy should be an IP URI. Ex: http://10.10.10.10:3389");
+                    return;
+                }
+            }
 
             TestBuilder builder = new TestBuilder();
             /*

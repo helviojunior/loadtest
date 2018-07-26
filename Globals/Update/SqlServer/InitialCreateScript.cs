@@ -54,6 +54,11 @@ namespace SafeTrend.Data.Update.SqlServer
                         DROP TABLE [ZabbixMonitor];
                     END
 
+                    IF (EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'ZabbixMonitorNetwork'))
+                    BEGIN
+                        DROP TABLE [ZabbixMonitorNetwork];
+                    END
+
                     CREATE TABLE [Events] (
                         id bigint IDENTITY (1, 1) NOT NULL, 
                         test_id varchar(50) NOT NULL, 
@@ -128,6 +133,17 @@ namespace SafeTrend.Data.Update.SqlServer
                         [selector] varchar(300), 
                         [total_value] bigint DEFAULT 0,
                         [value] bigint DEFAULT 0
+					);
+
+                    CREATE TABLE [ZabbixMonitorNetwork] (
+                        date datetime not null DEFAULT GETDATE(), 
+                        dateg datetime not null DEFAULT GETDATE(), 
+                        pID bigint, 
+                        testID varchar (50), 
+                        [host] varchar(300),
+                        [interface] varchar(300), 
+                        [in_value] bigint DEFAULT 0,
+                        [out_value] bigint DEFAULT 0
 					);
 
                     ";

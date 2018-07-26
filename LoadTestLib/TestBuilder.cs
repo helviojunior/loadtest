@@ -185,18 +185,33 @@ namespace LoadTestLib
 
                 }
 
-            if (level < maxLevel)
-            {
                 HtmlNodeCollection aLinks = doc.DocumentNode.SelectNodes("//a[@href]");
                 if (aLinks != null)
                     foreach (HtmlNode link in aLinks)
                     {
                         HtmlAttribute att = link.Attributes["href"];
                         UriInfo tmp = StringToLink(baseUri, att.Value);
-                        if ((tmp != null) && (tmp.Target.Host.ToLower() == baseUri.Host.ToLower()) && (tmp.Target.AbsoluteUri != baseUri.AbsoluteUri))
-                            GetLinks(tmp.Target, proxy, level + 1, maxLevel);
+
+                        switch (GetExtension(tmp.Target))
+                        {
+                            case ".txt":
+                            case ".html":
+                            case ".php":
+                            case ".asp":
+                            case ".aspx":
+                            case ".jpg":
+                            case ".png":
+                            case ".gif":
+                                tags.Add(tmp);
+                                break;
+                        }
+
+                        if (level < maxLevel)
+                        {
+                            if ((tmp != null) && (tmp.Target.Host.ToLower() == baseUri.Host.ToLower()) && (tmp.Target.AbsoluteUri != baseUri.AbsoluteUri))
+                                GetLinks(tmp.Target, proxy, level + 1, maxLevel);
+                        }
                     }
-            }
 
             foreach (UriInfo l in tags)
             {
@@ -215,6 +230,22 @@ namespace LoadTestLib
 
         }
 
+        private String GetExtension(Uri uri)
+        {
+            String ext = "";
+            FileInfo tmpFile = null;
+            try
+            {
+                String filename = uri.PathAndQuery.Replace('/', Path.DirectorySeparatorChar);
+                tmpFile = new FileInfo(filename);
+            }
+            catch { }
+
+            if (tmpFile != null)
+                ext = tmpFile.Extension.ToLower();
+
+            return ext;
+        }
         private static UriInfo StringToLink(Uri referer, String s)
         {
             UriInfo ret = null;

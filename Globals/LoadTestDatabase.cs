@@ -421,6 +421,106 @@ namespace LoadTestLib
             return Select(SQL);
         }
 
+
+        public DataTable selectZabbixCPULoad(String testId, String host, DateTime dStart, DateTime dEnd)
+        {
+
+            String SQL = "";
+
+            if (this.baseDB is SqlBase)
+            {
+                SQL = "select convert(datetime,convert(varchar(16), dateg, 120) + ':00',120) AS dateg, CAST(avg(value) AS BIGINT) AS load " +
+                "from [ZabbixMonitor] " +
+                "where date between '" + dStart.ToString("yyyy-MM-dd HH:mm:ss") + "' and '" + dEnd.ToString("yyyy-MM-dd HH:mm:ss") + "' " +
+                "and testID = '" + testId + "' ";
+                SQL += "and host = '" + host + "' ";
+                SQL += "and [key] = 'system.cpu.load' ";
+                SQL += "group by convert(datetime,convert(varchar(16), dateg, 120) + ':00',120) " +
+                "order by convert(datetime,convert(varchar(16), dateg, 120) + ':00',120)";
+            }
+            else if (this.baseDB is SqliteBase)
+            {
+                SQL = "select strftime('%Y-%m-%d %H:%M:00', dateg) AS dateg, CAST(avg(value) AS BIGINT) AS load " +
+                "from [ZabbixMonitor] " +
+                "where date between '" + dStart.ToString("yyyy-MM-dd HH:mm:ss") + "' and '" + dEnd.ToString("yyyy-MM-dd HH:mm:ss") + "' " +
+                "and testID = '" + testId + "' ";
+                SQL += "and host = '" + host + "' ";
+                SQL += "and key = 'system.cpu.load' ";
+                SQL += "group by strftime('%Y-%m-%d %H:%M:00', dateg) " +
+                "order by strftime('%Y-%m-%d %H:%M:00', dateg)";
+            }
+            else
+            {
+                throw new NotImplementedException(string.Format("The database '{0}' is not supported yet", this.baseDB.GetType()));
+            }
+            return Select(SQL);
+        }
+
+        public DataTable selectZabbixNetIfs(String testId, String host, DateTime dStart, DateTime dEnd)
+        {
+
+            String SQL = "";
+
+            if (this.baseDB is SqlBase)
+            {
+                SQL = "select interface as name " +
+                "from [ZabbixMonitorNetwork] " +
+                "where date between '" + dStart.ToString("yyyy-MM-dd HH:mm:ss") + "' and '" + dEnd.ToString("yyyy-MM-dd HH:mm:ss") + "' " +
+                "and testID = '" + testId + "' ";
+                SQL += "and host = '" + host + "' ";
+                SQL += "group by [interface]";
+            }
+            else if (this.baseDB is SqliteBase)
+            {
+                SQL = "select interface as name " +
+                "from [ZabbixMonitorNetwork] " +
+                "where date between '" + dStart.ToString("yyyy-MM-dd HH:mm:ss") + "' and '" + dEnd.ToString("yyyy-MM-dd HH:mm:ss") + "' " +
+                "and testID = '" + testId + "' ";
+                SQL += "and host = '" + host + "' ";
+                SQL += "group by [interface] ";
+            }
+            else
+            {
+                throw new NotImplementedException(string.Format("The database '{0}' is not supported yet", this.baseDB.GetType()));
+            }
+            return Select(SQL);
+        }
+
+
+        public DataTable selectZabbixNetworkTraffic(String testId, String host, String ifName, DateTime dStart, DateTime dEnd)
+        {
+
+            String SQL = "";
+
+            if (this.baseDB is SqlBase)
+            {
+                SQL = "select convert(datetime,convert(varchar(16), dateg, 120) + ':00',120) AS dateg, CAST(avg(in_value) AS BIGINT) AS in_value, CAST(avg(out_value) AS BIGINT) AS out_value " +
+                "from [ZabbixMonitorNetwork] " +
+                "where date between '" + dStart.ToString("yyyy-MM-dd HH:mm:ss") + "' and '" + dEnd.ToString("yyyy-MM-dd HH:mm:ss") + "' " +
+                "and testID = '" + testId + "' ";
+                SQL += "and host = '" + host + "' ";
+                SQL += "and interface = '" + ifName + "' ";
+                SQL += "group by convert(datetime,convert(varchar(16), dateg, 120) + ':00',120) " +
+                "order by convert(datetime,convert(varchar(16), dateg, 120) + ':00',120)";
+            }
+            else if (this.baseDB is SqliteBase)
+            {
+                SQL = "select strftime('%Y-%m-%d %H:%M:00', dateg) AS dateg, CAST(avg(in_value) AS BIGINT) AS in_value, CAST(avg(out_value) AS BIGINT) AS out_value " +
+                "from [ZabbixMonitorNetwork] " +
+                "where date between '" + dStart.ToString("yyyy-MM-dd HH:mm:ss") + "' and '" + dEnd.ToString("yyyy-MM-dd HH:mm:ss") + "' " +
+                "and testID = '" + testId + "' ";
+                SQL += "and host = '" + host + "' ";
+                SQL += "and interface = '" + ifName + "' ";
+                SQL += "group by strftime('%Y-%m-%d %H:%M:00', dateg) " +
+                "order by strftime('%Y-%m-%d %H:%M:00', dateg)";
+            }
+            else
+            {
+                throw new NotImplementedException(string.Format("The database '{0}' is not supported yet", this.baseDB.GetType()));
+            }
+            return Select(SQL);
+        }
+
         public DataTable selectZabbixMemory(String testId, String host, DateTime dStart, DateTime dEnd)
         {
 
@@ -454,7 +554,6 @@ namespace LoadTestLib
             }
             return Select(SQL);
         }
-
 
 
         public void insertMessages(String testId, String title, String text)

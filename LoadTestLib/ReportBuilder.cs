@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using System.Data;
 using Zip;
+using System.Security.Cryptography;
 //using SafeTrend.Data;
 
 namespace LoadTestLib
@@ -39,6 +40,8 @@ namespace LoadTestLib
                 tempDir.Create();
 
             ZIPUtil.DecompressData(FileResources.ReportZIPData(), tempDir);
+
+            String errorFile = Path.Combine(tempDir.FullName, "error.log");
 
             Int64 VU = 0;
 	        Int64 connections = 0;
@@ -78,10 +81,10 @@ namespace LoadTestLib
 
             DataTable dtZabbix = db.selectMonitoredZabbix(enviroment.TestName, enviroment.dStart, enviroment.dEnd);
 
+            Dictionary<String, String> zbxHosts = new Dictionary<string, string>();
             if (dtZabbix != null)
                 foreach (DataRow dr in dtZabbix.Rows)
                 {
-                    String key = Guid.NewGuid().ToString().Trim(" {}".ToCharArray()).Replace("-","");
                     String name = dr["host"].ToString();
 
                     try
@@ -91,6 +94,21 @@ namespace LoadTestLib
                                 name = cfg.Name;
                     }
                     catch { }
+
+
+                    zbxHosts.Add(dr["host"].ToString(), name);
+                }
+
+            //Ordena pelo nome do host
+            zbxHosts = zbxHosts.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
+
+            foreach (String host in zbxHosts.Keys)
+            {
+                try
+                {
+
+                    String key = Guid.NewGuid().ToString().Trim(" {}".ToCharArray()).Replace("-", "");
+                    String name = zbxHosts[host].ToString();
 
                     extra.AppendLine("<div class=\"full-line topspace\">");
                     extra.AppendLine("<h2>" + name + " - CPU (%)</h2>");
@@ -102,7 +120,16 @@ namespace LoadTestLib
                     extra.AppendLine("");
 
                     extra.AppendLine("<div class=\"full-line topspace\">");
-                    extra.AppendLine("<h2>" + name + " - Memoria</h2>");
+                    extra.AppendLine("<h2>" + name + " - CPU (Load Average - 1 min)</h2>");
+                    extra.AppendLine("</div>");
+                    extra.AppendLine("<div class=\"data1 data2 full-line\">");
+                    extra.AppendLine("<div class=\"chartcontent\"><canvas id=\"" + key + "_cpuload\" width=\"921\" height=\"150\"></canvas></div>");
+                    extra.AppendLine("<div class=\"clearfix\"></div>");
+                    extra.AppendLine("</div>");
+                    extra.AppendLine("");
+
+                    extra.AppendLine("<div class=\"full-line topspace\">");
+                    extra.AppendLine("<h2>" + name + " - Memoria (Gb)</h2>");
                     extra.AppendLine("</div>");
                     extra.AppendLine("<div class=\"data1 data2 full-line\">");
                     extra.AppendLine("<div class=\"chartcontent\"><canvas id=\"" + key + "_memory\" width=\"921\" height=\"150\"></canvas></div>");
@@ -110,9 +137,89 @@ namespace LoadTestLib
                     extra.AppendLine("</div>");
                     extra.AppendLine("");
 
+                    
+                    dtTmp = db.selectZabbixNetIfs(enviroment.TestName, host, enviroment.dStart, enviroment.dEnd);
+                    foreach (DataRow drNN in dtTmp.Rows)
+                    {
+                        String kName = GetMd5Hash(key + drNN["name"].ToString().Replace(" ", ""));
+                        extra.AppendLine("<div class=\"full-line topspace\">");
+                        extra.AppendLine("<h2>" + name + " - " + drNN["name"] + " (mbps)</h2>");
+                        extra.AppendLine("</div>");
+                        extra.AppendLine("<div class=\"data1 data2 full-line\">");
+                        extra.AppendLine("<div class=\"chartcontent\"><canvas id=\"" + kName + "_if\" width=\"921\" height=\"150\"></canvas></div>");
+                        extra.AppendLine("<div class=\"clearfix\"></div>");
+                        extra.AppendLine("</div>");
+                        extra.AppendLine("");
+
+
+                        labels.Clear();
+                        values.Clear();
+                        values2.Clear();
+
+                        labels.Add("Início");
+                        values.Add("0");
+                        values2.Add("0");
+
+                        date = enviroment.dStart;
+                        value = 0;
+
+                        dtTmp = db.selectZabbixNetworkTraffic(enviroment.TestName, host, drNN["name"].ToString(), enviroment.dStart, enviroment.dEnd);
+                        foreach (DataRow drN in dtTmp.Rows)
+                        {
+                            date = DateTime.Parse(drN["dateg"].ToString());
+                            labels.Add(date.ToString("HH:mm"));
+
+                            value = (Int64)drN["in_value"];
+                            values.Add(((value * 8) / 1024 / 1024).ToString());
+
+                            value = (Int64)drN["out_value"];
+                            values2.Add(((value * 8) / 1024 / 1024).ToString());
+                        }
+
+                        date.AddMinutes(1);
+
+                        labels.Add("Final");
+                        values.Add("0");
+                        values2.Add("0");
+
+                        js.AppendLine("var data1 = {");
+                        js.AppendLine("    labels: ['" + String.Join("','", labels) + "'],");
+                        js.AppendLine("    datasets: [");
+
+                        js.AppendLine("        {");
+                        js.AppendLine("            label: \"Input\",");
+                        js.AppendLine("            fillColor: \"rgba(220,220,220,0.2)\",");
+                        js.AppendLine("            strokeColor: \"rgba(220,220,220,1)\",");
+                        js.AppendLine("            pointColor: \"rgba(220,220,220,1)\",");
+                        js.AppendLine("            pointStrokeColor: \"#fff\",");
+                        js.AppendLine("            pointHighlightFill: \"#fff\",");
+                        js.AppendLine("            pointHighlightStroke: \"rgba(220,220,220,1)\",");
+                        js.AppendLine("            data: [" + String.Join(",", values) + "]");
+                        js.AppendLine("        },");
+
+                        js.AppendLine("        {");
+                        js.AppendLine("            label: \"Output\",");
+                        js.AppendLine("            fillColor: \"rgba(151,187,205,0.5)\",");
+                        js.AppendLine("            strokeColor: \"rgba(151,187,205,1)\",");
+                        js.AppendLine("            pointColor: \"rgba(151,187,205,1)\",");
+                        js.AppendLine("            pointStrokeColor: \"#fff\",");
+                        js.AppendLine("            data: [" + String.Join(",", values2) + "]");
+                        js.AppendLine("        }");
+
+                        js.AppendLine("    ]");
+                        js.AppendLine("}");
+
+                        js.AppendLine("var theCanvas = $('#" + kName + "_if').get(0);");
+                        js.AppendLine("var ctx = theCanvas.getContext(\"2d\");");
+                        js.AppendLine("var myNewChart = new Chart(ctx).Line(data1, null);");
+
+
+                    }
+
 
                     labels.Clear();
                     values.Clear();
+                    values2.Clear();
 
                     labels.Add("Início");
                     values.Add("0");
@@ -121,7 +228,7 @@ namespace LoadTestLib
                     date = enviroment.dStart;
                     value = 0;
 
-                    dtTmp = db.selectZabbixCPU(enviroment.TestName, dr["host"].ToString(), enviroment.dStart, enviroment.dEnd);
+                    dtTmp = db.selectZabbixCPU(enviroment.TestName, host, enviroment.dStart, enviroment.dEnd);
                     foreach (DataRow drH in dtTmp.Rows)
                     {
                         date = DateTime.Parse(drH["dateg"].ToString());
@@ -135,20 +242,20 @@ namespace LoadTestLib
 
                     labels.Add("Final");
                     values.Add("0");
-                     
+
                     js.AppendLine("var data1 = {");
                     js.AppendLine("    labels: ['" + String.Join("','", labels) + "'],");
                     js.AppendLine("    datasets: [");
-		            
-                    js.AppendLine("        {");
-		            js.AppendLine("            fillColor: \"rgba(151,187,205,0.5)\",");
-		            js.AppendLine("            strokeColor: \"rgba(151,187,205,1)\",");
-		            js.AppendLine("            pointColor: \"rgba(151,187,205,1)\",");
-		            js.AppendLine("            pointStrokeColor: \"#fff\",");
-                    js.AppendLine("            data: [" + String.Join(",", values) + "]");
-		            js.AppendLine("        }");
 
-	                js.AppendLine("    ]");
+                    js.AppendLine("        {");
+                    js.AppendLine("            fillColor: \"rgba(151,187,205,0.5)\",");
+                    js.AppendLine("            strokeColor: \"rgba(151,187,205,1)\",");
+                    js.AppendLine("            pointColor: \"rgba(151,187,205,1)\",");
+                    js.AppendLine("            pointStrokeColor: \"#fff\",");
+                    js.AppendLine("            data: [" + String.Join(",", values) + "]");
+                    js.AppendLine("        }");
+
+                    js.AppendLine("    ]");
                     js.AppendLine("}");
 
                     js.AppendLine("var theCanvas = $('#" + key + "_cpu').get(0);");
@@ -156,8 +263,56 @@ namespace LoadTestLib
                     js.AppendLine("var myNewChart = new Chart(ctx).Line(data1, null);");
 
 
+                    //Load AVG
+
+                    labels.Clear();
+                    values.Clear();
+
+                    labels.Add("Início");
+                    values.Add("0");
+                    values2.Add("0");
+
+                    date = enviroment.dStart;
+                    value = 0;
+
+                    dtTmp = db.selectZabbixCPULoad(enviroment.TestName, host, enviroment.dStart, enviroment.dEnd);
+                    foreach (DataRow drH in dtTmp.Rows)
+                    {
+                        date = DateTime.Parse(drH["dateg"].ToString());
+                        value = (Int64)drH["load"];
+
+                        labels.Add(date.ToString("HH:mm"));
+                        values.Add(value.ToString());
+                    }
+
+                    date.AddMinutes(1);
+
+                    labels.Add("Final");
+                    values.Add("0");
+
+                    js.AppendLine("var data1 = {");
+                    js.AppendLine("    labels: ['" + String.Join("','", labels) + "'],");
+                    js.AppendLine("    datasets: [");
+
+                    js.AppendLine("        {");
+                    js.AppendLine("            fillColor: \"rgba(151,187,205,0.5)\",");
+                    js.AppendLine("            strokeColor: \"rgba(151,187,205,1)\",");
+                    js.AppendLine("            pointColor: \"rgba(151,187,205,1)\",");
+                    js.AppendLine("            pointStrokeColor: \"#fff\",");
+                    js.AppendLine("            data: [" + String.Join(",", values) + "]");
+                    js.AppendLine("        }");
+
+                    js.AppendLine("    ]");
+                    js.AppendLine("}");
+
+                    js.AppendLine("var theCanvas = $('#" + key + "_cpuload').get(0);");
+                    js.AppendLine("var ctx = theCanvas.getContext(\"2d\");");
+                    js.AppendLine("var myNewChart = new Chart(ctx).Line(data1, null);");
+
+
+
                     //Memoria
-                    
+
                     labels.Clear();
                     values.Clear();
                     values2.Clear();
@@ -169,14 +324,14 @@ namespace LoadTestLib
                     date = enviroment.dStart;
                     value = 0;
 
-                    dtTmp = db.selectZabbixMemory(enviroment.TestName, dr["host"].ToString(), enviroment.dStart, enviroment.dEnd);
+                    dtTmp = db.selectZabbixMemory(enviroment.TestName, host, enviroment.dStart, enviroment.dEnd);
                     foreach (DataRow drH in dtTmp.Rows)
                     {
                         date = DateTime.Parse(drH["dateg"].ToString());
 
                         labels.Add(date.ToString("HH:mm"));
-                        values.Add(((Int64)drH["total_memory"]).ToString());
-                        values2.Add(((Int64)drH["memory"]).ToString());
+                        values.Add((((Int64)drH["total_memory"])/1024/1024/1024).ToString());
+                        values2.Add((((Int64)drH["memory"]) / 1024 / 1024 / 1024).ToString());
                     }
 
                     date.AddMinutes(1);
@@ -215,8 +370,12 @@ namespace LoadTestLib
                     js.AppendLine("var theCanvas = $('#" + key + "_memory').get(0);");
                     js.AppendLine("var ctx = theCanvas.getContext(\"2d\");");
                     js.AppendLine("var myNewChart = new Chart(ctx).Line(data1, null);");
-                    
                 }
+                catch (Exception ex)
+                {
+                    File.WriteAllBytes(errorFile, Encoding.UTF8.GetBytes(ex.Message + ex.StackTrace));
+                }
+            }
 
             File.WriteAllBytes(Path.Combine(tempDir.FullName, "index.html"), Encoding.UTF8.GetBytes(FileResources.GetIndexText(this.enviroment.TestName, this.enviroment, VU, connections, throughput, bytesReceived, requests, rps, extra.ToString())));
 
@@ -823,6 +982,28 @@ namespace LoadTestLib
 
         }
 
+        string GetMd5Hash(string input)
+        {
+            using (MD5 md5Hash = MD5.Create())
+            {
+                // Convert the input string to a byte array and compute the hash.
+                byte[] data = md5Hash.ComputeHash(Encoding.UTF8.GetBytes(input));
+
+                // Create a new Stringbuilder to collect the bytes
+                // and create a string.
+                StringBuilder sBuilder = new StringBuilder();
+
+                // Loop through each byte of the hashed data 
+                // and format each one as a hexadecimal string.
+                for (int i = 0; i < data.Length; i++)
+                {
+                    sBuilder.Append(data[i].ToString("x2"));
+                }
+
+                // Return the hexadecimal string.
+                return sBuilder.ToString();
+            }
+        }
 
         private void CopyTo(DirectoryInfo baseDir, DirectoryInfo from, DirectoryInfo to)
         {

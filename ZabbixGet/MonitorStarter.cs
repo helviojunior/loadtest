@@ -148,7 +148,10 @@ namespace LoadTestLib
                 foreach(ZabbixConfig cfg in environment.ZabbixMonitors){
 
                     //ChangeDB(i);
-                    Debug.WriteLine("procQueue.Start(i); " + i);
+                                //Console.WriteLine(text);
+#if DEBUG
+                    Console.WriteLine("procQueue.Start(i); " + i);
+#endif
 
                     _queue[i] = new DBQueue();
                     Thread procQueue = new Thread(new ParameterizedThreadStart(ProcQueue));
@@ -161,6 +164,20 @@ namespace LoadTestLib
                     //Busca as interfaces de rede
                     using (Zabbix zbx = new Zabbix(cfg.Host, cfg.Port))
                     {
+                        List<String> exclusionList = new List<string>();
+                        exclusionList.Add("Bluetooth");
+                        exclusionList.Add("TAP-Windows");
+                        exclusionList.Add("WFP");
+                        exclusionList.Add("QoS");
+                        exclusionList.Add("Diebold");
+                        exclusionList.Add("Microsoft Kernel Debug");
+                        exclusionList.Add("WAN Miniport");
+                        exclusionList.Add("Loopback");
+                        exclusionList.Add("Wi-Fi Direct Virtual");
+                        exclusionList.Add("Filter Driver");
+                        exclusionList.Add("Pseudo-Interface");
+
+
                         String netIfs = zbx.GetItem("net.if.discovery");
                         IfRet interfaces = JSON.Deserialize2<IfRet>(netIfs);
 
@@ -168,10 +185,19 @@ namespace LoadTestLib
                             foreach (Dictionary<String, String> dic in interfaces.data)
                                 if (dic != null)
                                     foreach (String val in dic.Values)
-                                        if (!String.IsNullOrWhiteSpace(val) && val.ToLower() != "lo")
+                                        if (!String.IsNullOrWhiteSpace(val))
                                         {
-                                            new Thread(new ParameterizedThreadStart(CounterProcNet)).Start(new MonitorTheadStarter(cfg, "net.if.in[" + val + "]", i));
-                                            new Thread(new ParameterizedThreadStart(CounterProcNet)).Start(new MonitorTheadStarter(cfg, "net.if.out[" + val + "]", i));
+                                            Boolean monitor = true;
+
+                                            foreach (String e in exclusionList)
+                                                if (val.IndexOf(e, StringComparison.CurrentCultureIgnoreCase) >= 0)
+                                                    monitor = false;
+
+                                            if (monitor)
+                                            {
+                                                new Thread(new ParameterizedThreadStart(CounterProcNet)).Start(new MonitorTheadStarter(cfg, val, i));
+                                                // new Thread(new ParameterizedThreadStart(CounterProcNet)).Start(new MonitorTheadStarter(cfg, val, i));
+                                            }
                                         }
 
                     }
@@ -201,6 +227,15 @@ namespace LoadTestLib
                 switch (info.key.ToLower())
                 {
                     case "system.cpu.util[,,avg1]":
+                         try
+                        {
+                            String tmp3 = zbx.GetItem(info.key).Replace(".",",");
+                            double tmp = double.Parse(tmp3);
+                            _queue[info.index].Add(new ZabbixQueueItem(DateTime.Now, info.config.Host, info.key, 100, (Int64)tmp));
+                        }
+                        catch { }
+                        break;
+
                     case "system.cpu.load[percpu,avg1]":
                         try
                         {
@@ -266,38 +301,56 @@ namespace LoadTestLib
             Zabbix zbx = new Zabbix(info.config.Host, info.config.Port);
             //String tmp = zbx.GetItem(info.key);
 
-            ZabbixQueueItem last = new ZabbixQueueItem(DateTime.Now, info.config.Host, info.key, 0, Int64.Parse(zbx.GetItem(info.key)));
+            //
+
+            ZabbixQueueItem lastIn = null;
+            ZabbixQueueItem lastOut = null;
 
             while (_running)
             {
-
-                switch (info.key.ToLower())
+                try
                 {
-                    default:
+                    if (lastIn == null)
+                        lastIn = new ZabbixQueueItem(DateTime.Now, info.config.Host, info.key, 0, Int64.Parse(zbx.GetItem("net.if.in[" + info.key + "]")));
 
-                        ZabbixQueueItem actual = new ZabbixQueueItem(DateTime.Now, info.config.Host, info.key, 0, Int64.Parse(zbx.GetItem(info.key)));
+                    if (lastOut == null)
+                        lastOut = new ZabbixQueueItem(DateTime.Now, info.config.Host, info.key, 0, Int64.Parse(zbx.GetItem("net.if.out[" + info.key + "]")));
 
-                        try
-                        {
-                            double lap = ((TimeSpan)(actual.date - last.date)).TotalSeconds;
-                            double lap2 = double.Parse(actual.value.ToString()) - double.Parse(last.value.ToString());
+                    ZabbixQueueItem actualIn = new ZabbixQueueItem(DateTime.Now, info.config.Host, info.key, 0, Int64.Parse(zbx.GetItem("net.if.in[" + info.key + "]")));
+                    ZabbixQueueItem actualOut = new ZabbixQueueItem(DateTime.Now, info.config.Host, info.key, 0, Int64.Parse(zbx.GetItem("net.if.out[" + info.key + "]")));
 
-                            double value = (lap2 / lap);
+                    try
+                    {
+                        double lapIn = ((TimeSpan)(actualIn.date - lastIn.date)).TotalSeconds;
+                        double lapIn2 = double.Parse(actualIn.value.ToString()) - double.Parse(lastIn.value.ToString());
 
-                            if (double.IsNaN(value) || double.IsInfinity(value))
-                                value = 0;
+                        double valueIn = (lapIn2 / lapIn);
 
-                            _queue[info.index].Add(new ZabbixQueueItem(actual.date, actual.host, info.key, 0, ((Int64)value)));
+                        if (double.IsNaN(valueIn) || double.IsInfinity(valueIn))
+                            valueIn = 0;
 
-                            last = actual;
-                        }
-                        catch { }
+                        double lapOut = ((TimeSpan)(actualOut.date - lastOut.date)).TotalSeconds;
+                        double lapOut2 = double.Parse(actualOut.value.ToString()) - double.Parse(lastOut.value.ToString());
 
-                        break;
+                        double valueOut = (lapOut2 / lapOut);
+
+                        if (double.IsNaN(valueOut) || double.IsInfinity(valueOut))
+                            valueOut = 0;
+
+                        _queue[info.index].Add(new ZabbixQueueNetworkItem(actualIn.date, actualIn.host, info.key, ((Int64)valueIn), ((Int64)valueOut)));
+
+                        lastIn = actualIn;
+                        lastOut = actualOut;
+                    }
+                    catch { }
 
                 }
+                catch { }
+                finally
+                {
 
-                Thread.Sleep(10000);
+                    Thread.Sleep(10000);
+                }
             }
         }
 
@@ -341,6 +394,7 @@ namespace LoadTestLib
             String sIndex = String.Format("{0:00000}", index);
 
             DataTable zabbixTable = null;
+            DataTable zabbixNetworkTable = null;
 
             if (OnBulkEvent != null)
             {
@@ -354,6 +408,16 @@ namespace LoadTestLib
                 zabbixTable.Columns.Add(new DataColumn("selector", typeof(String)));
                 zabbixTable.Columns.Add(new DataColumn("total_value", typeof(Int64)));
                 zabbixTable.Columns.Add(new DataColumn("value", typeof(Int64)));
+
+                zabbixNetworkTable = new DataTable();
+                zabbixNetworkTable.Columns.Add(new DataColumn("date", typeof(DateTime)));
+                zabbixNetworkTable.Columns.Add(new DataColumn("dateg", typeof(DateTime)));
+                zabbixNetworkTable.Columns.Add(new DataColumn("pID", typeof(Int64)));
+                zabbixNetworkTable.Columns.Add(new DataColumn("testID", typeof(String)));
+                zabbixNetworkTable.Columns.Add(new DataColumn("host", typeof(String)));
+                zabbixNetworkTable.Columns.Add(new DataColumn("interface", typeof(String)));
+                zabbixNetworkTable.Columns.Add(new DataColumn("in_value", typeof(Int64)));
+                zabbixNetworkTable.Columns.Add(new DataColumn("out_value", typeof(Int64)));
 
             }
 
@@ -387,6 +451,25 @@ namespace LoadTestLib
                                         queueItem.Zabbix.selector,
                                         queueItem.Zabbix.totalValue,
                                         queueItem.Zabbix.value
+                                    });
+
+
+                            }//if (queueItem.Zabbix != null)
+
+                            //Insere os registros nas tebelas locais temporárias
+                            if (queueItem.ZabbixNetwork != null)
+                            {
+
+                                if (zabbixNetworkTable != null)
+                                    zabbixNetworkTable.Rows.Add(new Object[] { 
+                                        queueItem.ZabbixNetwork.date, 
+                                        DateGroup(queueItem.ZabbixNetwork.date), 
+                                        i_pid,
+                                        environment.TestName,
+                                        queueItem.ZabbixNetwork.host, 
+                                        queueItem.ZabbixNetwork.networkInterface,
+                                        queueItem.ZabbixNetwork.inValue,
+                                        queueItem.ZabbixNetwork.outValue
                                     });
 
 
@@ -428,6 +511,9 @@ namespace LoadTestLib
 
                                     if (zabbixTable.Rows.Count > 0)
                                         OnBulkEvent(zabbixTable, "ZabbixMonitor");
+
+                                    if (zabbixNetworkTable.Rows.Count > 0)
+                                        OnBulkEvent(zabbixNetworkTable, "ZabbixMonitorNetwork");
 
                                 }
 

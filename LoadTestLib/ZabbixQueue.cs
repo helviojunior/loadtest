@@ -39,6 +39,32 @@ namespace LoadTestLib
         }
     }
 
+    public class ZabbixQueueNetworkItem : IDisposable
+    {
+        public DateTime date;
+        public String host;
+        public String networkInterface;
+        public Int64 inValue;
+        public Int64 outValue;
+
+        public ZabbixQueueNetworkItem(DateTime date, String host, String networkInterface, Int64 inValue, Int64 outValue)
+        {
+            this.date = date;
+            this.host = host;
+            this.networkInterface = networkInterface;
+            this.inValue = inValue;
+            this.outValue = outValue;
+
+        }
+
+        public void Dispose()
+        {
+            host = null;
+            networkInterface = null;
+        }
+    }
+
+
     public class ZabbixQueue
     {
         private List<ZabbixQueueItem> _logItems;

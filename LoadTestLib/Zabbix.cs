@@ -47,6 +47,10 @@ namespace LoadTestLib.ZabbixGet
 
             try
             {
+#if DEBUG
+                //Console.WriteLine("Zabbix>GetText Getting key " + key + " from " + mHost + ":" + mPort);
+#endif
+
                 TcpClient client = new TcpClient(mHost, mPort);
 
                 using (MemoryStream sendBuffer = new MemoryStream())
@@ -119,15 +123,22 @@ namespace LoadTestLib.ZabbixGet
             }
             catch (ArgumentNullException e)
             {
+#if DEBUG
+                //Console.WriteLine("Zabbix>GetText ArgumentNullException: {0}", e);
+#endif
                 return "";
-                //Console.WriteLine("ArgumentNullException: {0}", e);
             }
             catch (SocketException e)
             {
+#if DEBUG
+                //Console.WriteLine("Zabbix>GetText SocketException: {0}", e);
+#endif
                 return "";
-                //Console.WriteLine("SocketException: {0}", e);
+               
             }
-
+#if DEBUG
+            //Console.WriteLine("Zabbix>GetText response key " + key + " from " + mHost + ":" + mPort + " ==> " + responseData);
+#endif
             return responseData;
         }
     }

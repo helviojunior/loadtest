@@ -18,6 +18,8 @@ using SafeTrend.Data;
 using SafeTrend.Data.Update;
 using System.IO.Compression;
 using LoadTestLib.ZabbixGet;
+using System.Reflection;
+using System.Web.Script.Serialization;
 
 namespace LoadTestLib
 {
@@ -127,6 +129,8 @@ namespace LoadTestLib
             }
 
 
+            JavaScriptSerializer ser = new JavaScriptSerializer();
+            
             if (this.ZabbixMonitors != null)
             {
                 foreach (ZabbixConfig zbxHost in this.ZabbixMonitors)
@@ -136,8 +140,139 @@ namespace LoadTestLib
                     {
                         using (Zabbix zbx = new Zabbix(zbxHost.Host, zbxHost.Port))
                         {
+                            StringBuilder hostInfo = new StringBuilder();
+
                             String hostname = zbx.GetItem("system.hostname");
-                            db.insertMessages(this.TestName, "1. Zabbix Monitor", "Nome real da maquina é " + hostname  + " para " + zbxHost.Name + " (" + zbxHost.Host + ":" + zbxHost.Port + ")");
+
+                            hostInfo.AppendLine("<strong>Config name:</strong>&nbsp;" + zbxHost.Name);
+                            hostInfo.AppendLine("<strong>Config ip:</strong>&nbsp;" + zbxHost.Host + ":" + zbxHost.Port);
+                            hostInfo.AppendLine("<strong>Hostname:</strong>&nbsp;" + hostname);
+
+                            String memory = zbx.GetItem("vm.memory.size[total]");
+                            try
+                            {
+                                Double m = Double.Parse(memory);
+                                ;
+
+                                hostInfo.AppendLine("<strong>Memória total:</strong>&nbsp;" + FileResources.formatData(m, ChartDataType.Bytes));
+                            }
+                            catch { }
+
+                            String cpus = zbx.GetItem("system.cpu.discovery");
+                            try
+                            {
+
+                                Dictionary<String, Object[]> values = ser.Deserialize<Dictionary<String, Object[]>>(cpus);
+                                //List<Dictionary<String, String>> values = ser.Deserialize<List<Dictionary<String, String>>>(cpus);
+                                hostInfo.AppendLine("<strong>Quantidade de vCPU:</strong>&nbsp;" + values["data"].Length);
+
+                            }
+                            catch { }
+
+
+                            String disk = zbx.GetItem("vfs.fs.discovery");
+                            try
+                            {
+
+                                Dictionary<String, Object[]> values = ser.Deserialize<Dictionary<String, Object[]>>(disk);
+                                //List<Dictionary<String, String>> values = ser.Deserialize<List<Dictionary<String, String>>>(cpus);
+                                Int32 cnt = 1;
+                                foreach (Object o in values["data"])
+                                {
+                                    String name = "";
+                                    String type = "";
+
+                                    if (o is Dictionary<String, Object>)
+                                    {
+                                        Dictionary<String, Object> tO = (Dictionary<String, Object>)o;
+
+                                        name = tO["{#FSNAME}"].ToString();
+                                        type = tO["{#FSTYPE}"].ToString();
+
+                                        if (!String.IsNullOrEmpty(name))
+                                        {
+                                            switch (type.ToLower())
+                                            {
+                                                case "rootfs":
+                                                case "sysfs":
+                                                case "proc":
+                                                case "devtmpfs":
+                                                case "devpts":
+                                                case "tmpfs":
+                                                case "fusectl":
+                                                case "debugfs":
+                                                case "securityfs":
+                                                case "pstore":
+                                                case "cgroup":
+                                                case "rpc_pipefs":
+                                                case "unknown":
+                                                case "usbfs":
+                                                case "binfmt_misc":
+                                                case "autofs":
+                                                    break;
+
+                                                default:
+                                                    hostInfo.AppendLine("<strong>Disco " + cnt + ":</strong>&nbsp;" + name + " --> " + type);
+                                                    cnt++;
+                                                    break;
+                                            }
+                                        }
+                                    }
+                                }
+
+
+                            }
+                            catch { }
+
+                            String netIfs = zbx.GetItem("net.if.discovery");
+                            try
+                            {
+                                List<String> exclusionList = new List<string>();
+                                exclusionList.Add("Bluetooth");
+                                exclusionList.Add("TAP-Windows");
+                                exclusionList.Add("WFP");
+                                exclusionList.Add("QoS");
+                                exclusionList.Add("Diebold");
+                                exclusionList.Add("Microsoft Kernel Debug");
+                                exclusionList.Add("WAN Miniport");
+                                exclusionList.Add("Loopback");
+                                exclusionList.Add("Wi-Fi Direct Virtual");
+                                exclusionList.Add("Filter Driver");
+                                exclusionList.Add("Pseudo-Interface");
+
+                                Dictionary<String, Object[]> values = ser.Deserialize<Dictionary<String, Object[]>>(netIfs);
+                                Int32 cnt = 1;
+                                foreach (Object o in values["data"])
+                                {
+                                    String ifName = "";
+
+                                    if (o is Dictionary<String, Object>)
+                                    {
+                                        Dictionary<String, Object> tO = (Dictionary<String, Object>)o;
+
+                                        ifName = tO["{#IFNAME}"].ToString();
+
+                                        if (!String.IsNullOrEmpty(ifName))
+                                        {
+                                            Boolean insert = true;
+
+                                            foreach (String e in exclusionList)
+                                                if (ifName.IndexOf(e, StringComparison.CurrentCultureIgnoreCase) >= 0)
+                                                    insert = false;
+
+                                            if (insert)
+                                            {
+                                                hostInfo.AppendLine("<strong>Interface de rede " + cnt + ":</strong>&nbsp;" + ifName);
+                                                cnt++;
+                                            }
+
+                                        }
+                                    }
+                                }
+                            }
+                            catch { }
+
+                            db.insertMessages(this.TestName, "1. Zabbix Monitor", hostInfo.ToString());
                         }
 
                     }
@@ -220,6 +355,15 @@ namespace LoadTestLib
 
         private void AnalizeURI(LoadTestDatabase db, UriInfo u)
         {
+
+            switch (GetExtension(u.Target))
+            {
+                case ".txt":
+                    //Sai sem analizar
+                    return; 
+                    break;
+            }
+
             Console.WriteLine("ContentAnalizer> " + u.Target);
             Console.Write("\tBaixando: ");
             ResultData request = Request.GetRequest(u.Target, this.Proxy, false, HTTPHeaders);
@@ -669,7 +813,7 @@ namespace LoadTestLib
             ProcessStartInfo st = new ProcessStartInfo();
             st.WorkingDirectory = Environment.CurrentDirectory;
             st.FileName = filename;
-            st.WindowStyle = ProcessWindowStyle.Normal;
+            st.WindowStyle = ProcessWindowStyle.Minimized;
 
             Process proc = new Process();
             proc.StartInfo = st;
