@@ -341,6 +341,13 @@ namespace LoadTestLib
                 }
                 catch { }
 
+                try
+                {
+                    if (this.Proxy != null)
+                        db.insertMessages(this.TestName, "1. Proxy", "Proxy Server: " + Proxy.Address.ToString() + ":" + Proxy.Port);
+                }
+                catch { }
+
                 //Minifica arquivos arquivos css (.css) e javascript (.js)
                 foreach (UriInfo u in this.Uris)
                     AnalizeURI(db, u);
