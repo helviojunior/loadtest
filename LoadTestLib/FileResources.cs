@@ -139,7 +139,7 @@ namespace LoadTestLib
             html.AppendLine("        ");
             
             html.AppendLine("<div class=\"full-line topspace\">");
-            html.AppendLine("<h2>Bandwidth (Mbps)</h2>");
+            html.AppendLine("<h2>Bandwidth (mbps)</h2>");
             html.AppendLine("</div>");
             html.AppendLine("<div class=\"data1 data2 full-line\">");
             html.AppendLine("<div class=\"chartcontent\"><canvas id=\"c5\" width=\"921\" height=\"150\"></canvas></div>");

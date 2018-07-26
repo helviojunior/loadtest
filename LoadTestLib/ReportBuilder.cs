@@ -701,7 +701,9 @@ namespace LoadTestLib
                 value = (Int64)dr["mbps"];
 
                 labels.Add(date.ToString("HH:mm"));
-                values.Add(value.ToString());
+
+                values.Add((value / 1024 / 1024).ToString());
+                //values.Add(value.ToString());
             }
 
             date.AddMinutes(1);
