@@ -200,10 +200,18 @@ namespace LoadTest
             _tmpEnd = new Timer(new TimerCallback(tmpEnd), null, duration * 1000, duration * 1000);
             Console.CancelKeyPress += new ConsoleCancelEventHandler(myHandler);
 
+            Console.WriteLine("");
+
+            DateTime dStart = DateTime.Now;
             while (_running)
             {
                 System.Threading.Thread.Sleep(500);
+                TimeSpan ts = DateTime.Now - dStart;
+                Console.Write("\r");
+                Console.Write("Test Duration: {0}", ts.ToString(@"hh\:mm\:ss"));
             }
+            ClearCurrentConsoleLine();
+            Console.WriteLine("");
 
             env.Stop();
             
@@ -215,6 +223,14 @@ namespace LoadTest
             Console.WriteLine("Gerando relatório...");
             env.BuildReports();
             //env.DropDatabase();
+        }
+
+        protected static void ClearCurrentConsoleLine()
+        {
+            int currentLineCursor = Console.CursorTop;
+            Console.SetCursorPosition(0, Console.CursorTop);
+            Console.Write(new string(' ', Console.WindowWidth));
+            Console.SetCursorPosition(0, currentLineCursor);
         }
 
         protected static void tmpEnd(object sender)

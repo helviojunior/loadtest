@@ -267,6 +267,11 @@ namespace LoadTestLib
                 SendText("OnStatisticReceived", ex.Message);
             }
 
+#if DEBUG
+            if (result.Error || result.Code != 200 || !String.IsNullOrEmpty(result.ErrorMessage))
+                SendText("OnStatisticReceived with error? Is it error? " + result.Error + " Result Code " + result.Code, result.ErrorMessage);
+#endif
+
             if (OnResultReceived != null)
                 OnResultReceived(date, result, this.state);
 

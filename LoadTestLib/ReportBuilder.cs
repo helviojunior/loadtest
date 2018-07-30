@@ -607,6 +607,8 @@ namespace LoadTestLib
             labels.Add("Início");
             values.Add("0");
 
+            Dictionary<String, Int64> dicErrors = new Dictionary<string,long>();
+
             date = enviroment.dStart;
             value = 0;
             foreach (DataRow dr in dtTmp.Rows)
@@ -616,6 +618,10 @@ namespace LoadTestLib
 
                 labels.Add(date.ToString("HH:mm"));
                 values.Add(value.ToString());
+
+                //Preenche o dicionario de erros para ficar alinhado com o de requisicoes
+                if (!dicErrors.ContainsKey(date.ToString("HH:mm")))
+                    dicErrors.Add(date.ToString("HH:mm"), 0);
             }
 
             date.AddMinutes(1);
@@ -657,9 +663,19 @@ namespace LoadTestLib
             {
                 date = DateTime.Parse(dr["dateg"].ToString());
                 value = (Int64)dr["errors"];
+                if (dicErrors.ContainsKey(date.ToString("HH:mm")))
+                {
+                    dicErrors[date.ToString("HH:mm")] = value;
+                }else{
+                    dicErrors.Add(date.ToString("HH:mm"), 0);
+                }
+                    
+            }
 
-                labels.Add(date.ToString("HH:mm"));
-                values.Add(value.ToString());
+            foreach(String k in dicErrors.Keys)
+            {
+                labels.Add(k);
+                values.Add(dicErrors[k].ToString());
             }
 
             date.AddMinutes(1);
