@@ -33,6 +33,7 @@ namespace LoadTestLib
         private Boolean _EnableDebug;
         private TestEnvironment environment;
         private Timer _cntTimer;
+        private Int32 _SleepTimer;
 
         public Boolean EnableDebug { get { return _EnableDebug; } set { _EnableDebug = value; } }
 
@@ -63,6 +64,12 @@ namespace LoadTestLib
                 OnDebugEvent("0", "Start> Iniciando");
 
             this._running = true;
+
+
+            if (environment.SleepTime > 0)
+                this._SleepTimer = environment.SleepTime;
+            else
+                this._SleepTimer = 0;
 
             _cntTimer = new Timer(new TimerCallback(CntTmrCallback), null, 5000, 200);
 
@@ -177,7 +184,8 @@ namespace LoadTestLib
                     if (OnResultReceived != null)
                         OnResultReceived(DateTime.Now, request);
 
-                    Thread.Sleep(100);
+
+                    Thread.Sleep(100 + this._SleepTimer);
                 }
 
                 Thread.Sleep(500);

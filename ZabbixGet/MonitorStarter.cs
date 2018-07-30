@@ -329,12 +329,18 @@ namespace LoadTestLib
                         if (double.IsNaN(valueIn) || double.IsInfinity(valueIn))
                             valueIn = 0;
 
+                        if (valueIn < 0)
+                            valueIn = 0;
+
                         double lapOut = ((TimeSpan)(actualOut.date - lastOut.date)).TotalSeconds;
                         double lapOut2 = double.Parse(actualOut.value.ToString()) - double.Parse(lastOut.value.ToString());
 
                         double valueOut = (lapOut2 / lapOut);
 
                         if (double.IsNaN(valueOut) || double.IsInfinity(valueOut))
+                            valueOut = 0;
+
+                        if (valueOut < 0)
                             valueOut = 0;
 
                         _queue[info.index].Add(new ZabbixQueueNetworkItem(actualIn.date, actualIn.host, info.key, ((Int64)valueIn), ((Int64)valueOut)));

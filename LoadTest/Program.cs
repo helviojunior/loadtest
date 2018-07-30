@@ -157,6 +157,13 @@ namespace LoadTest
                 }
             }
 
+            Int32 sleepTime = 0;
+            try
+            {
+                Int32.TryParse((string)ConfigurationManager.AppSettings["sleeptime"], out sleepTime);
+            }
+            catch { }
+
             TestBuilder builder = new TestBuilder();
             /*
             if (prof != null)
@@ -179,6 +186,7 @@ namespace LoadTest
             TestEnvironment env = builder.Build(proxy, type, 5);
             env.HTTPHeaders = headers;
             env.ZabbixMonitors = zbxConfig;
+            env.SleepTime = sleepTime;
 
             env.VirtualUsers = connCount;
             env.ConnectionString = new DbConnectionString(ConfigurationManager.ConnectionStrings["LoadTest"]);

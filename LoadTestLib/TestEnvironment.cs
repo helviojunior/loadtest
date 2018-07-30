@@ -40,6 +40,8 @@ namespace LoadTestLib
         public Int16 SBUConcurrentConnections { get; set; }
         public IPEndPoint Proxy { get; set; }
         public Int16 VirtualUsers { get; set; }
+        public Int32 SleepTime { get; set; }
+        
         //public SQLConfig SQLConfig { get; set; }
         public DbConnectionString ConnectionString { get; set; }
         public String TestName { get; set; }
@@ -56,6 +58,7 @@ namespace LoadTestLib
             this.OutUris = new List<UriInfo>();
             this.Type = ClientType.VU;
             this.SBUConcurrentConnections = 5;
+            this.SleepTime = 0;
             this.Proxy = null;
             this.VirtualUsers = 10;
             this.TestName = DateTime.Now.ToString("yyyyMMddHHmmssffff");
@@ -287,6 +290,9 @@ namespace LoadTestLib
             //Antes de iniciar o stress test realiza a análise de conteúdo
             this.ContentAnalizer();
 
+            if (this.SleepTime < 0)
+                this.SleepTime = 0;
+
             Int16 factor = 300;
 
             if (this.Type == ClientType.VU)
@@ -300,6 +306,25 @@ namespace LoadTestLib
             {
                 StartApplication("ZabbixGet.exe", tmp);
             }
+
+
+            using (TestEnvironment tmp = (TestEnvironment)this.Clone())
+            {
+                Int16 r = this.VirtualUsers;
+                if (r > factor)
+                    r = factor;
+                tmp.VirtualUsers = r;
+                FileInfo tFile = new FileInfo(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
+
+                tmp.SaveToFile(tFile.FullName);
+
+
+                Console.WriteLine("Para iniciar mais conexões utilize o comando abaixo, cada cliente iniciará {0} usuários virtuais", tmp.VirtualUsers);
+                Console.WriteLine("\"{0}\\{1}\" \"{2}\"", Environment.CurrentDirectory, "client.exe", tFile.FullName);
+                Console.WriteLine("");
+
+            }
+
 
             Int16 restConn = this.VirtualUsers;
             while (restConn > factor)
@@ -707,6 +732,7 @@ namespace LoadTestLib
             this.dEnd = item.dEnd;
             this.dStart = item.dStart;
             this.ZabbixMonitors = item.ZabbixMonitors;
+            this.SleepTime = item.SleepTime;
         }
 
         private static Byte[] GzipCompress(Byte[] data)
@@ -743,6 +769,7 @@ namespace LoadTestLib
             tmp.dStart = this.dStart;
             tmp.dEnd = this.dEnd;
             tmp.ZabbixMonitors = this.ZabbixMonitors;
+            tmp.SleepTime = this.SleepTime;
 
             return tmp;
         }
