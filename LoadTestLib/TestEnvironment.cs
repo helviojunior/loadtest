@@ -301,10 +301,11 @@ namespace LoadTestLib
             if (this.VirtualUsers < 0)
                 this.VirtualUsers = 1;
 
-            //Inicia servi;co de monitoramento
+            //Inicia servi;co de monitoramento e SNMP Trap
             using (TestEnvironment tmp = (TestEnvironment)this.Clone())
             {
                 StartApplication("ZabbixGet.exe", tmp);
+                StartApplication("snmptrapreceiver.exe", tmp);
             }
 
 
@@ -788,6 +789,7 @@ namespace LoadTestLib
 
             KillAll("client");
             KillAll("ZabbixGet");
+            KillAll("SNMPTrapReceiver");
         }
 
 

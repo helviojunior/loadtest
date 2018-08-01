@@ -100,8 +100,14 @@ namespace LoadTestLib
 
             this._pool.Add(pID, new Thread(new ParameterizedThreadStart(StartThread)));
 
-            this.virtualUsers.Add(vuIndex);
-            this.connections.Add(pID);
+            lock (this.virtualUsers)
+            {
+                this.virtualUsers.Add(vuIndex);
+            }
+            lock (this.connections)
+            {
+                this.connections.Add(pID);
+            }
 
             if (this._pool.ContainsKey(pID))
             {
@@ -170,7 +176,10 @@ namespace LoadTestLib
             {
                 foreach (UriInfo u in environment.Uris)
                 {
-                    this.connections.Add(pID);
+                    lock (this.connections)
+                    {
+                        this.connections.Add(pID);
+                    }
                     ResultData request = Request.GetRequest(u.Target, environment.Proxy, environment.HTTPHeaders);
                     this.connections.Remove(pID);
 

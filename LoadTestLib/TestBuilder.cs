@@ -119,7 +119,10 @@ namespace LoadTestLib
 
             Console.WriteLine(level + " ==> " + baseUri.AbsoluteUri);
 
-            gets.Add(baseUri.AbsoluteUri);
+            lock (gets)
+            {
+                gets.Add(baseUri.AbsoluteUri);
+            }
 
             List<UriInfo> tags = new List<UriInfo>();
 
