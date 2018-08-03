@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Threading;
 
 namespace LoadTestLib
 {
@@ -49,10 +50,10 @@ namespace LoadTestLib
             html.AppendLine("<strong class=\"p120\">Tipo de usuário:</strong><div class=\"left\">" + env.Type.ToString() + "</div>");
             html.AppendLine("</div>");
             html.AppendLine("<div class=\"full-line clearfix\">");
-            html.AppendLine("<strong class=\"p120\">Iniciado em:</strong><div class=\"left\">" + env.dStart.ToString("dd/MM/yyyy HH:mm:ss") + "</div>");
+            html.AppendLine("<strong class=\"p120\">Iniciado em:</strong><div class=\"left\">" + env.dStart.ToString(Thread.CurrentThread.CurrentCulture) + "</div>");
             html.AppendLine("</div>");
             html.AppendLine("<div class=\"full-line clearfix\">");
-            html.AppendLine("<strong class=\"p120\">Finalizado em:</strong><div class=\"left\">" + env.dEnd.ToString("dd/MM/yyyy HH:mm:ss") + "</div>");
+            html.AppendLine("<strong class=\"p120\">Finalizado em:</strong><div class=\"left\">" + env.dEnd.ToString(Thread.CurrentThread.CurrentCulture) + "</div>");
             html.AppendLine("</div>");
             html.AppendLine("<div class=\"clearfix\"></div>");
             html.AppendLine("</div>");

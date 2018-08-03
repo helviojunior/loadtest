@@ -5,6 +5,7 @@ using System.Text;
 using System.Net;
 using System.Net.Sockets;
 using System.IO;
+using System.Threading;
 
 namespace SNMPTrapReceiver
 {
@@ -65,7 +66,7 @@ namespace SNMPTrapReceiver
         {
             String ret = "";
 
-            ret += "Date: " + receivedDate.ToString("o") + Environment.NewLine;
+            ret += "Date: " + receivedDate.ToString(Thread.CurrentThread.CurrentCulture) + Environment.NewLine;
             ret += "From: " + receivedEP.Address.ToString() + Environment.NewLine;
             ret += "Community: " + community + Environment.NewLine;
             ret += "Enterprise: " + enterprise + Environment.NewLine;
