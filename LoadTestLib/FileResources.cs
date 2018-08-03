@@ -33,6 +33,11 @@ namespace LoadTestLib
             html.AppendLine("<script src=\"js/RGraph.common.core.js\" type=\"text/javascript\"></script>");
             html.AppendLine("<script src=\"js/RGraph.radar.js\" type=\"text/javascript\"></script>");
             html.AppendLine("<script src=\"js/loadtest.report.js\" type=\"text/javascript\"></script>");
+            html.AppendLine("<style>");
+            html.AppendLine("#message .message {");
+            html.AppendLine("    line-height: 16px !important;");
+            html.AppendLine("}");
+            html.AppendLine("</style>");
             html.AppendLine("</head>");
             html.AppendLine("<body>");
             html.AppendLine("<div id=\"content\" class=\"clear-fix\">");
