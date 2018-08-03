@@ -10,7 +10,8 @@ using System.Threading;
 using System.IO;
 using System.Configuration;
 using SafeTrend.Data;
-
+using System.Diagnostics;
+using System.Security.Principal;
 
 namespace LoadTest
 {
@@ -22,7 +23,19 @@ namespace LoadTest
         static void Main(string[] args)
         {
             AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
+            System.Reflection.Assembly asm = System.Reflection.Assembly.GetExecutingAssembly();
 
+            WindowsPrincipal pricipal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
+            bool hasAdministrativeRight = pricipal.IsInRole(WindowsBuiltInRole.Administrator);
+
+            if (!hasAdministrativeRight)
+            {
+                string parameter = string.Concat(args);
+                RunElevated(asm.Location, parameter);
+                Process.GetCurrentProcess().Kill();
+            }
+
+            Console.WriteLine("[+] Checking initial configuration...");
 
             Int16 levels = 3;
                 Int16.TryParse(ConfigurationManager.AppSettings["levels"], out levels);
@@ -96,6 +109,37 @@ namespace LoadTest
                 return;
             }
 
+            Console.WriteLine("[+] Checking zabbix agents...");
+
+
+            Console.WriteLine("[+] Checking date and time from NTP servers...");
+
+            try
+            {
+
+                DateTime ntpdate = NTP.GetNetworkUTCTime();
+                Console.WriteLine("          NTP UTC data: " + ntpdate.ToString(Thread.CurrentThread.CurrentCulture));
+                TimeSpan ts = ntpdate - DateTime.UtcNow;
+                if (Math.Abs(ts.TotalSeconds) > 60)
+                {
+                    Console.WriteLine("          Updating local time");
+                    Console.WriteLine("          Old time: " + DateTime.Now.ToString(Thread.CurrentThread.CurrentCulture));
+                    NTP.SetSystemTime(ntpdate);
+                    Console.WriteLine("          New time: " + DateTime.Now.ToString(Thread.CurrentThread.CurrentCulture));
+                }
+                else
+                {
+                    Console.WriteLine("          Local time is up to date");
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[!] Error updating local time: " + ex.Message);
+            }
+
+
             List<ZabbixConfig> zbxConfig = new List<ZabbixConfig>();
             
             ZabbixConfigSection ZabbixManagers = (ZabbixConfigSection)ConfigurationManager.GetSection("zabbixMonitors");
@@ -106,14 +150,17 @@ namespace LoadTest
                     //Realiza teste de conex'ao em cada um dos zabbix listados
                     try
                     {
+                        Console.Write("[*] Zabbix agent on " + zbxHost.Host + ":" + zbxHost.Port);
                         using (Zabbix zbx = new Zabbix(zbxHost.Host, zbxHost.Port))
                         {
                             String tst = zbx.GetItem("system.hostname");
                         }
 
                         zbxConfig.Add(new ZabbixConfig(zbxHost.Name, zbxHost.Host, zbxHost.Port));
+                        Console.WriteLine("\t\tOK");
                     }
                     catch {
+                        Console.WriteLine("\t\tError");
                         Console.WriteLine("Error Getting information from Zabbix " + zbxHost.Name + " (" + zbxHost.Host + ":" + zbxHost.Port + ")");
                         return;
                     }
@@ -175,8 +222,9 @@ namespace LoadTest
                     1);
             */
 
-            
-            
+            //
+
+            Console.WriteLine("[+] Building test environment...");
             builder.Fetch(
                     site,
                     proxy,
@@ -192,9 +240,11 @@ namespace LoadTest
             env.ConnectionString = new DbConnectionString(ConfigurationManager.ConnectionStrings["LoadTest"]);
             env.Start();
 
-            Console.WriteLine("Sistema iniciado (" + (prof != null ? "prof" : "scan") + ")!");
-            Console.WriteLine("Duração do teste: " + duration + " segundos");
-            Console.WriteLine("Para finalizar o teste pressionte CTRL + C");
+            Console.WriteLine("[+] Starting test...");
+
+            Console.WriteLine("[+] System started (" + (prof != null ? "prof" : "scan") + ")!");
+            Console.WriteLine("[+] Total test duration: " + duration + " seconds");
+            Console.WriteLine("[!] Press CTRL + C to finish the teste and generate report");
 
             _running = true;
             _tmpEnd = new Timer(new TimerCallback(tmpEnd), null, duration * 1000, duration * 1000);
@@ -220,11 +270,30 @@ namespace LoadTest
             env.LoadConfig("temp.env");*/
 
             //Gera o relatório
-            Console.WriteLine("Gerando relatório...");
+            Console.WriteLine("[+] Building report...");
             env.BuildReports();
             //env.DropDatabase();
         }
 
+        private static bool RunElevated(string fileName, String arguments)
+        {
+            //MessageBox.Show("Run: " + fileName);
+            ProcessStartInfo processInfo = new ProcessStartInfo();
+            processInfo.Verb = "runas";
+            processInfo.FileName = fileName;
+            processInfo.Arguments = arguments;
+            try
+            {
+                Process p = Process.Start(processInfo);
+                //p.WaitForExit();
+                return true;
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+                //Do nothing. Probably the user canceled the UAC window
+            }
+            return false;
+        }
         protected static void ClearCurrentConsoleLine()
         {
             int currentLineCursor = Console.CursorTop;
